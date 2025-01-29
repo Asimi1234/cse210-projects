@@ -1,168 +1,131 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-
-//Additional Feature
-// The program includes a mood tracking feature that prompts users to select their current mood when adding a journal entry, saves the mood alongside the entry details, and displays it when viewing entries.
-
-public class Entry
-{
-    public string Prompt { get; set; }
-    public string Response { get; set; }
-    public string Date { get; set; }
-    public string Mood { get; set; }
-
-    public Entry(string prompt, string response, string mood)
-    {
-        Prompt = prompt;
-        Response = response;
-        Mood = mood;
-        Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-    }
-
-    public override string ToString()
-    {
-        return $"Date: {Date}\nPrompt: {Prompt}\nResponse: {Response}\nMood: {Mood}\n";
-    }
-}
-
-public class Journal
-{
-    private List<Entry> _entries = new List<Entry>();
-    private List<string> _prompts = new List<string>
-    {
-        "Who was the most interesting person I interacted with today?",
-        "What was the best part of my day?",
-        "How did I see the hand of the Lord in my life today?",
-        "What was the strongest emotion I felt today?",
-        "If I had one thing I could do over today, what would it be?"
-    };
-
-    private List<string> _moods = new List<string>
-    {
-        "Happy",
-        "Sad",
-        "Neutral",
-        "Excited",
-        "Anxious"
-    };
-
-    public void AddEntry()
-    {
-        Random random = new Random();
-        string prompt = _prompts[random.Next(_prompts.Count)];
-        Console.WriteLine($"Prompt: {prompt}");
-        Console.Write("Your Response: ");
-        string response = Console.ReadLine();
-
-        Console.WriteLine("Select your mood:");
-        for (int i = 0; i < _moods.Count; i++)
-        {
-            Console.WriteLine($"{i + 1}. {_moods[i]}");
-        }
-        Console.Write("Enter the number corresponding to your mood: ");
-        int moodIndex;
-        while (!int.TryParse(Console.ReadLine(), out moodIndex) || moodIndex < 1 || moodIndex > _moods.Count)
-        {
-            Console.Write("Invalid choice. Please enter a valid number: ");
-        }
-
-        string mood = _moods[moodIndex - 1];
-        _entries.Add(new Entry(prompt, response, mood));
-    }
-
-    public void DisplayEntries()
-    {
-        if (_entries.Count == 0)
-        {
-            Console.WriteLine("\nNo journal entries found.");
-            return;
-        }
-
-        Console.WriteLine("\n--- Journal Entries ---");
-        foreach (var entry in _entries)
-        {
-            Console.WriteLine(entry);
-        }
-    }
-
-    public void SaveToFile(string filename)
-    {
-        using (StreamWriter writer = new StreamWriter(filename))
-        {
-            foreach (var entry in _entries)
-            {
-                writer.WriteLine($"{entry.Date}|{entry.Prompt}|{entry.Response}|{entry.Mood}");
-            }
-        }
-        Console.WriteLine("Journal saved successfully!");
-    }
-
-    public void LoadFromFile(string filename)
-    {
-        if (File.Exists(filename))
-        {
-            _entries.Clear();
-            foreach (var line in File.ReadAllLines(filename))
-            {
-                string[] parts = line.Split('|');
-                if (parts.Length == 4)
-                {
-                    _entries.Add(new Entry(parts[1], parts[2], parts[3]) { Date = parts[0] });
-                }
-            }
-            Console.WriteLine("Journal loaded successfully!");
-        }
-        else
-        {
-            Console.WriteLine("File not found.");
-        }
-    }
-}
+using System.Linq;
 
 class Program
 {
-    static void Main(string[] args)
+    static void Main()
     {
-        Journal journal = new Journal();
-        string userInput;
+        // Create a scripture with reference and text
+        Reference scriptureReference = new Reference("Proverbs", 3, 5, 6);
+        string scriptureText = "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.";
+        Scripture scripture = new Scripture(scriptureReference, scriptureText);
 
-        do
+        // Main loop for the program
+        while (!scripture.IsCompletelyHidden())
         {
-            Console.WriteLine("\nJournal Program");
-            Console.WriteLine("1. Write");
-            Console.WriteLine("2. Display");
-            Console.WriteLine("3. Save");
-            Console.WriteLine("4. Load");
-            Console.WriteLine("5. Exit");
-            Console.Write("What would you like to do? ");
-            userInput = Console.ReadLine();
+            Console.Clear();
+            scripture.Display();
 
-            switch (userInput)
+            Console.WriteLine("\nPress Enter to hide words or type 'quit' to exit.");
+            string userInput = Console.ReadLine();
+
+            if (userInput.ToLower() == "quit")
             {
-                case "1":
-                    journal.AddEntry();
-                    break;
-                case "2":
-                    journal.DisplayEntries();
-                    break;
-                case "3":
-                    Console.Write("Enter filename to save: ");
-                    string saveFilename = Console.ReadLine();
-                    journal.SaveToFile(saveFilename);
-                    break;
-                case "4":
-                    Console.Write("Enter filename to load: ");
-                    string loadFilename = Console.ReadLine();
-                    journal.LoadFromFile(loadFilename);
-                    break;
-                case "5":
-                    Console.WriteLine("Exiting program. Goodbye!");
-                    break;
-                default:
-                    Console.WriteLine("Invalid option. Please try again.");
-                    break;
+                break;
             }
-        } while (userInput != "5");
+
+            scripture.HideWords();
+        }
+
+        Console.Clear();
+        scripture.Display();
+        Console.WriteLine("\nAll words are hidden. Program ended.");
+    }
+}
+
+// Class representing a word in the scripture
+class Word
+{
+    public string Text { get; private set; }
+    public bool IsHidden { get; private set; }
+
+    public Word(string text)
+    {
+        Text = text;
+        IsHidden = false;
+    }
+
+    public void Hide()
+    {
+        IsHidden = true;
+    }
+
+    public string GetDisplayText()
+    {
+        return IsHidden ? new string('_', Text.Length) : Text;
+    }
+}
+
+// Class representing the scripture reference (e.g., "Proverbs 3:5-6")
+class Reference
+{
+    private string _book;
+    private int _chapter;
+    private int _startVerse;
+    private int _endVerse;
+
+    public Reference(string book, int chapter, int verse)
+    {
+        _book = book;
+        _chapter = chapter;
+        _startVerse = verse;
+        _endVerse = verse;
+    }
+
+    public Reference(string book, int chapter, int startVerse, int endVerse)
+    {
+        _book = book;
+        _chapter = chapter;
+        _startVerse = startVerse;
+        _endVerse = endVerse;
+    }
+
+    public string GetReference()
+    {
+        return _startVerse == _endVerse
+            ? $"{_book} {_chapter}:{_startVerse}"
+            : $"{_book} {_chapter}:{_startVerse}-{_endVerse}";
+    }
+}
+
+// Class that manages the scripture text and hiding words
+class Scripture
+{
+    private Reference _reference;
+    private List<Word> _words;
+    private Random _random;
+
+    public Scripture(Reference reference, string text)
+    {
+        _reference = reference;
+        _words = text.Split(' ').Select(word => new Word(word)).ToList();
+        _random = new Random();
+    }
+
+    public void Display()
+    {
+        Console.WriteLine(_reference.GetReference());
+        Console.WriteLine(string.Join(" ", _words.Select(word => word.GetDisplayText())));
+    }
+
+    public void HideWords()
+    {
+        int wordsToHide = 3;
+
+        List<Word> visibleWords = _words.Where(word => !word.IsHidden).ToList();
+        if (visibleWords.Count == 0) return;
+
+        for (int i = 0; i < wordsToHide && visibleWords.Count > 0; i++)
+        {
+            int index = _random.Next(visibleWords.Count);
+            visibleWords[index].Hide();
+            visibleWords.RemoveAt(index);
+        }
+    }
+
+    public bool IsCompletelyHidden()
+    {
+        return _words.All(word => word.IsHidden);
     }
 }
